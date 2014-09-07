@@ -18,7 +18,7 @@ public class RobotControlScript : MonoBehaviour {
 	
 	public Transform target;
 	public float DirectionDampTime = .25f;
-	public float t;
+	public float t, timeLatestAction;
 	public static State state;
 	public ArrayList actions;
 	public int actionIndex = 0;
@@ -30,11 +30,15 @@ public class RobotControlScript : MonoBehaviour {
 	
 	void Start () 
 	{
-		jc = new AndroidJavaClass ("com.unity3d.player.UnityPlayer"); 
-		jo = jc.GetStatic<AndroidJavaObject> ("currentActivity"); 
+		try {
+			jc = new AndroidJavaClass ("com.unity3d.player.UnityPlayer"); 
+			jo = jc.GetStatic<AndroidJavaObject> ("currentActivity"); 
+		}
+		catch {}
 
 		animator = GetComponent<Animator>();
 		t = Time.time;
+		timeLatestAction = Time.time;
 
 		if (!state) {
 			state = new State ();
@@ -89,10 +93,10 @@ public class RobotControlScript : MonoBehaviour {
 		}
 		json.Add ("actions", array);
 
-		System.IO.MemoryStream stream = new System.IO.MemoryStream();
-		json.SaveToStream (stream);
-		System.IO.StreamReader reader = new System.IO.StreamReader (stream, System.Text.Encoding.UTF8);
-		jo.Call ("onReceiveUnityJson", reader.ReadToEnd ());
+		string s = json.ToString ();
+		if (jo != null) {
+			jo.Call ("onReceiveUnityJson", s);
+		}
 	}
 
 	void Update () 
@@ -182,6 +186,7 @@ public class RobotControlScript : MonoBehaviour {
 					action.direction = direction;
 					action.time = Time.time - t;
 					actions.Add (action);
+					timeLatestAction = Time.time;
 					//Debug.Log ("adding action #" + actionIndex + ", time: " + action.time + ", speed: " + speed + ", direction=" + direction);
 					actionIndex++;
 
@@ -189,8 +194,9 @@ public class RobotControlScript : MonoBehaviour {
 				}
 			}
 
-			if (Time.time - t > 5) {
+			if (Time.time - timeLatestAction > 5) {
 				actionIndex = 0;
+				getState ();
 				Application.LoadLevel ("Stickman");
 				t = Time.time;
 			}
