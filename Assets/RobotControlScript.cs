@@ -1,6 +1,10 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+public class State : ScriptableObject {
+	public ArrayList actions;
+}
+
 public class StickmanAction {
 	public float speed;
 	public float direction;
@@ -14,18 +18,28 @@ public class RobotControlScript : MonoBehaviour {
 	public Transform target;
 	public float DirectionDampTime = .25f;
 	public float t;
-	public ArrayList actions = new ArrayList();
+	public static State state;
+	public ArrayList actions;
 	public int actionIndex = 0;
 	
 	void Start () 
 	{
 		animator = GetComponent<Animator>();
 		t = Time.time;
+
+		if (!state) {
+			state = new State ();
+			state.name = "state";
+			actions = new ArrayList();
+			state.actions = actions;
+		} else {
+			actions = state.actions;
+		}
 	}
 
 	void Awake ()
 	{
-		DontDestroyOnLoad(actions);
+		DontDestroyOnLoad(state);
 	}
 
 	void applyAction(StickmanAction action) {
