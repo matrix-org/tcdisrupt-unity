@@ -167,6 +167,7 @@ public class RobotControlScript : MonoBehaviour {
 						Vector3 newPosition = new Vector3(currentAction.x, currentAction.y, currentAction.z);
 						targetTransform.position = Camera.main.ScreenToWorldPoint(newPosition);
 					}
+					timeLatestAction = Time.time;
 					actionIndex++;
 				}
 			}
@@ -257,7 +258,7 @@ public class RobotControlScript : MonoBehaviour {
 				draggingTarget = false;
 			}
 
-			if (Time.time - timeLatestAction > 5) {
+			if (Time.time - timeLatestAction > 3) {
 				actionIndex = 0;
 				//getState ();
 				Application.LoadLevel ("Stickman");
