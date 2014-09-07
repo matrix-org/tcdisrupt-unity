@@ -196,7 +196,7 @@ public class RobotControlScript : MonoBehaviour {
 
 			if (Time.time - timeLatestAction > 5) {
 				actionIndex = 0;
-				getState ();
+				//getState ();
 				Application.LoadLevel ("Stickman");
 				t = Time.time;
 			}
