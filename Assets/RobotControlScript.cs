@@ -56,7 +56,16 @@ public class RobotControlScript : MonoBehaviour {
 	}
 
 	void setState(string json) {
-		//JSONNode s = JSON.Parse(json);
+		JSONNode s = JSON.Parse(json);
+		actions = new ArrayList ();
+		state.actions = actions;
+		foreach (JSONNode n in (JSONArray)s["actions"]) {
+			StickmanAction action = new StickmanAction();
+			action.time = n["time"].AsFloat;
+			action.speed = n["speed"].AsFloat;
+			action.direction = n["direction"].AsFloat;
+			actions.Add (action);
+		}
 	}
 
 	void getState() {
