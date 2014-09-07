@@ -22,7 +22,8 @@ public class RobotControlScript : MonoBehaviour {
 	public static State state;
 	public ArrayList actions;
 	public int actionIndex = 0;
-
+	Plane groundPlane;
+	
 	// ze bridge!
 	AndroidJavaClass jc;
 	AndroidJavaObject jo;
@@ -43,6 +44,10 @@ public class RobotControlScript : MonoBehaviour {
 		} else {
 			actions = state.actions;
 		}
+
+		groundPlane = new Plane(Vector3.up, Vector3.zero);
+
+		animator.SetFloat ("Direction", 0.5f); 
 	}
 
 	void Awake ()
@@ -52,6 +57,7 @@ public class RobotControlScript : MonoBehaviour {
 
 	void applyAction(StickmanAction action) {
 		animator.SetFloat ("Speed", action.speed);
+		//animator.SetFloat ("Direction", action.direction); 
 		animator.SetFloat ("Direction", action.direction, DirectionDampTime, Time.deltaTime);
 	}
 
@@ -103,9 +109,9 @@ public class RobotControlScript : MonoBehaviour {
 			touchPosition.x = 0;
 			touchPosition.y = 0;
 
-			Vector3 screenPos = Camera.main.WorldToScreenPoint(target.position);
+			Vector3 screenTargetPos = Camera.main.WorldToScreenPoint(target.position);
 			bool update = false;
-			
+
 			if (Application.platform == RuntimePlatform.IPhonePlayer ||
 			    Application.platform == RuntimePlatform.Android)
 			{
@@ -121,41 +127,66 @@ public class RobotControlScript : MonoBehaviour {
 					touchPosition = Input.mousePosition;
 				}
 			}
-			
-			//update = true;
 
 			if (actions.Count > 0 && actionIndex < actions.Count) {
 				StickmanAction currentAction = (StickmanAction) actions[actionIndex];
 				if (Time.time - t >= currentAction.time) {
-					StickmanAction action = (StickmanAction) currentAction;
-					applyAction(action);
+					//Debug.Log ("playing action #" + actionIndex + ", time: " + currentAction.time + ", speed: " + currentAction.speed + ", direction=" + currentAction.direction);
+
+					applyAction(currentAction);
 					actionIndex++;
 				}
 			}
 
-			if (update) {
-				actions.RemoveRange(actionIndex, actions.Count - actionIndex);
+			if (update) { // clicked
+				Ray ray = Camera.main.ScreenPointToRay(touchPosition);
+				float rayDistance;
+				if (groundPlane.Raycast(ray, out rayDistance)) {
+					Vector3 point = ray.GetPoint(rayDistance);
+					
+					// calculate the Y component of the cross product between the
+					// vector the dude is going in, and the vector to the destination point,
+					// to tell whether to turn left or right
+					
+					float angle = this.transform.rotation.y;
+					Vector3 bearing = new Vector3(Mathf.Sin (angle), 0, Mathf.Cos (angle));
+					Vector3 destination = point - this.transform.position;
 
-				h = (screenPos.x - touchPosition.x) / Camera.main.pixelWidth;
-				v = (screenPos.y - touchPosition.y) / Camera.main.pixelHeight;
-				// h = Input.GetAxis("Horizontal");
-				// v = Input.GetAxis("Vertical");
+					// direction should be normalised to [0, 1] for the blend animation
+					float direction = (bearing.z * destination.x - bearing.x * destination.z) / (bearing.magnitude * destination.magnitude);
+					direction /= 2.0f;
+					direction += 0.5f;
+					float speed = Vector3.Magnitude(destination);
 
-				float speed = -v;
-				float direction = h;
+					//Debug.Log ("bearing angle: " + angle + ", speed: " + speed + ", direction=" + direction);
 
-				//set event parameters based on user input
-				animator.SetFloat("Speed", speed);
-				animator.SetFloat("Direction", direction, DirectionDampTime, Time.deltaTime);
+					actions.RemoveRange(actionIndex, actions.Count - actionIndex);
 
-				StickmanAction action = new StickmanAction();
-				action.speed = speed;
-				action.direction = direction;
-				action.time = Time.time - t;
-				actions.Add (action);
-				applyAction(action);
+					/*
+					h = (screenTargetPos.x - touchPosition.x) / Camera.main.pixelWidth;
+					v = (screenTargetPos.y - touchPosition.y) / Camera.main.pixelHeight;
+					// h = Input.GetAxis("Horizontal");
+					// v = Input.GetAxis("Vertical");
 
-				//Debug.Log ("h: " + h + ", v: " + v);
+					float speed = -v;
+					float direction = h;
+					*/
+
+					//set event parameters based on user input
+					//animator.SetFloat("Speed", speed);
+					//animator.SetFloat("Direction", direction);
+					//animator.SetFloat("Direction", direction, DirectionDampTime, Time.deltaTime);
+
+					StickmanAction action = new StickmanAction();
+					action.speed = speed;
+					action.direction = direction;
+					action.time = Time.time - t;
+					actions.Add (action);
+					//Debug.Log ("adding action #" + actionIndex + ", time: " + action.time + ", speed: " + speed + ", direction=" + direction);
+					actionIndex++;
+
+					applyAction(action);
+				}
 			}
 
 			if (Time.time - t > 5) {
