@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
+using SimpleJSON;
 
 public class State : ScriptableObject {
 	public ArrayList actions;
@@ -21,9 +22,16 @@ public class RobotControlScript : MonoBehaviour {
 	public static State state;
 	public ArrayList actions;
 	public int actionIndex = 0;
+
+	// ze bridge!
+	AndroidJavaClass jc;
+	AndroidJavaObject jo;
 	
 	void Start () 
 	{
+		jc = new AndroidJavaClass ("com.unity3d.player.UnityPlayer"); 
+		jo = jc.GetStatic<AndroidJavaObject> ("currentActivity"); 
+
 		animator = GetComponent<Animator>();
 		t = Time.time;
 
@@ -46,7 +54,32 @@ public class RobotControlScript : MonoBehaviour {
 		animator.SetFloat ("Speed", action.speed);
 		animator.SetFloat ("Direction", action.direction, DirectionDampTime, Time.deltaTime);
 	}
-	
+
+	void setState(string json) {
+		//JSONNode s = JSON.Parse(json);
+	}
+
+	void getState() {
+		JSONClass json = new JSONClass();
+		string filename = Time.time + ".png";
+		Application.CaptureScreenshot(filename);
+		json.Add ("thumbnail", new JSONData(filename));
+		JSONArray array = new JSONArray ();
+		foreach (StickmanAction action in actions) {
+			JSONClass a = new JSONClass ();
+			a.Add("speed", new JSONData(action.speed));
+			a.Add("direction", new JSONData(action.direction));
+			a.Add("time", new JSONData(action.time));
+			array.Add(a);
+		}
+		json.Add ("actions", array);
+
+		System.IO.MemoryStream stream = new System.IO.MemoryStream();
+		json.SaveToStream (stream);
+		System.IO.StreamReader reader = new System.IO.StreamReader (stream, System.Text.Encoding.UTF8);
+		jo.Call ("onReceiveUnityJson", reader.ReadToEnd ());
+	}
+
 	void Update () 
 	{
 		if(animator)
@@ -113,7 +146,7 @@ public class RobotControlScript : MonoBehaviour {
 				actions.Add (action);
 				applyAction(action);
 
-				Debug.Log ("h: " + h + ", v: " + v);
+				//Debug.Log ("h: " + h + ", v: " + v);
 			}
 
 			if (Time.time - t > 5) {
