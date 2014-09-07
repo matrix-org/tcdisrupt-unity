@@ -7,10 +7,15 @@ public class State : ScriptableObject {
 }
 
 public class StickmanAction {
+	public int type;
 	public float speed;
 	public float direction;
 	public float time;
+	public float x;
+	public float y;
+	public float z;
 }
+
 
 public class RobotControlScript : MonoBehaviour {
 	
@@ -23,6 +28,10 @@ public class RobotControlScript : MonoBehaviour {
 	public ArrayList actions;
 	public int actionIndex = 0;
 	Plane groundPlane;
+	SphereCollider sphere;
+	float targetDepth;
+	bool draggingTarget;
+	Transform targetTransform;
 	
 	// ze bridge!
 	AndroidJavaClass jc;
@@ -50,8 +59,14 @@ public class RobotControlScript : MonoBehaviour {
 		}
 
 		groundPlane = new Plane(Vector3.up, Vector3.zero);
+		//sphere = SphereCollider.FindObjectOfType ();
 
 		animator.SetFloat ("Direction", 0.5f); 
+
+		draggingTarget = false;
+		targetDepth = 0.0f;
+
+		targetTransform = SphereCollider.FindObjectOfType<SphereCollider> ().gameObject.transform;
 	}
 
 	void Awake ()
@@ -71,9 +86,13 @@ public class RobotControlScript : MonoBehaviour {
 		state.actions = actions;
 		foreach (JSONNode n in (JSONArray)s["actions"]) {
 			StickmanAction action = new StickmanAction();
+			action.type = n["type"].AsInt;
 			action.time = n["time"].AsFloat;
 			action.speed = n["speed"].AsFloat;
 			action.direction = n["direction"].AsFloat;
+			action.x = n["x"].AsFloat;
+			action.y = n["y"].AsFloat;
+			action.z = n["z"].AsFloat;
 			actions.Add (action);
 		}
 	}
@@ -86,10 +105,14 @@ public class RobotControlScript : MonoBehaviour {
 		JSONArray array = new JSONArray ();
 		foreach (StickmanAction action in actions) {
 			JSONClass a = new JSONClass ();
+			a.Add("type", new JSONData(action.type));
 			a.Add("speed", new JSONData(action.speed));
 			a.Add("direction", new JSONData(action.direction));
 			a.Add("time", new JSONData(action.time));
-			array.Add(a);
+            a.Add("x", new JSONData(action.x));
+	        a.Add("y", new JSONData(action.y));
+	        a.Add("z", new JSONData(action.z));
+		      array.Add(a);
 		}
 		json.Add ("actions", array);
 
@@ -114,20 +137,20 @@ public class RobotControlScript : MonoBehaviour {
 			touchPosition.y = 0;
 
 			Vector3 screenTargetPos = Camera.main.WorldToScreenPoint(target.position);
-			bool update = false;
+			bool pressed = false;
 
 			if (Application.platform == RuntimePlatform.IPhonePlayer ||
 			    Application.platform == RuntimePlatform.Android)
 			{
 				if (Input.touchCount > 0)
 				{
-					update = true;
+					pressed = true;
 					touchPosition = Input.GetTouch(0).position;
 				}
 			}
 			else {
 				if (Input.GetMouseButton(0)) {
-					update = true;
+					pressed = true;
 					touchPosition = Input.mousePosition;
 				}
 			}
@@ -136,16 +159,53 @@ public class RobotControlScript : MonoBehaviour {
 				StickmanAction currentAction = (StickmanAction) actions[actionIndex];
 				if (Time.time - t >= currentAction.time) {
 					//Debug.Log ("playing action #" + actionIndex + ", time: " + currentAction.time + ", speed: " + currentAction.speed + ", direction=" + currentAction.direction);
-
-					applyAction(currentAction);
+				
+					if (currentAction.type == 0) {
+						applyAction(currentAction);
+					}
+					else {
+						Vector3 newPosition = new Vector3(currentAction.x, currentAction.y, currentAction.z);
+						targetTransform.position = Camera.main.ScreenToWorldPoint(newPosition);
+					}
 					actionIndex++;
 				}
 			}
 
-			if (update) { // clicked
+			if (pressed) {
 				Ray ray = Camera.main.ScreenPointToRay(touchPosition);
 				float rayDistance;
-				if (groundPlane.Raycast(ray, out rayDistance)) {
+
+				RaycastHit hit;
+				if (!draggingTarget) {
+					if (Physics.Raycast (ray, out hit, Mathf.Infinity)) {
+						//Debug.Log ("Raycast hit at position " + hit.transform.position + ", and the gameObject position is " + hit.point);
+
+						//Debug.Log ("hit.transform.position.z = " + hit.transform.position.z + ", hit.distance = " + hit.distance);
+
+						targetDepth = hit.distance; // hit.transform.position.z; // hit.distance;
+
+						//hit.collider.gameObject.transform.position = Camera.main.ScreenToWorldPoint(new Vector3(touchPosition.x, touchPosition.y, hit.distance));
+
+						// hit.collider.gameObject.transform.position = hit.point;
+
+						draggingTarget = true;
+					}
+				}
+				else {
+					Vector3 newPosition = new Vector3(Input.mousePosition.x, Input.mousePosition.y, targetDepth);
+					StickmanAction action = new StickmanAction();
+					action.type = 1;
+					action.x = newPosition.x;
+					action.y = newPosition.y;
+					action.z = newPosition.z;
+					action.time = Time.time - t;
+					actions.Add (action);
+					timeLatestAction = Time.time;
+					actionIndex++;
+					targetTransform.position = Camera.main.ScreenToWorldPoint(newPosition);
+				}
+
+				if (!draggingTarget && groundPlane.Raycast(ray, out rayDistance)) {
 					Vector3 point = ray.GetPoint(rayDistance);
 					
 					// calculate the Y component of the cross product between the
@@ -192,6 +252,9 @@ public class RobotControlScript : MonoBehaviour {
 
 					applyAction(action);
 				}
+			}
+			else {
+				draggingTarget = false;
 			}
 
 			if (Time.time - timeLatestAction > 5) {

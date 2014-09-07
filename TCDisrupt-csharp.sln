@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 
 Project("{BEB8CA3F-EF81-9C64-6969-00383BDC6FE6}") = "TCDisrupt", "Assembly-CSharp-vs.csproj", "{AFD951B6-5C32-AA2C-F560-447AB1BDDA88}"
 EndProject
+Project("{BEB8CA3F-EF81-9C64-6969-00383BDC6FE6}") = "TCDisrupt", "Assembly-CSharp-Editor-vs.csproj", "{14C2349F-E909-F49E-E480-AF05799C3D7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,11 +15,15 @@ Global
 		{AFD951B6-5C32-AA2C-F560-447AB1BDDA88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFD951B6-5C32-AA2C-F560-447AB1BDDA88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFD951B6-5C32-AA2C-F560-447AB1BDDA88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14C2349F-E909-F49E-E480-AF05799C3D7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14C2349F-E909-F49E-E480-AF05799C3D7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14C2349F-E909-F49E-E480-AF05799C3D7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14C2349F-E909-F49E-E480-AF05799C3D7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-									GlobalSection(MonoDevelopProperties) = preSolution
+												GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = Assembly-CSharp.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1
